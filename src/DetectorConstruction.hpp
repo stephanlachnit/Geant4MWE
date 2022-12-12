@@ -5,12 +5,12 @@
 
 class DetectorConstruction : public G4VUserDetectorConstruction {
 public:
-    DetectorConstruction() {}
+    DetectorConstruction(bool checkOverlaps = false) : fCheckOverlaps(checkOverlaps) {}
     virtual ~DetectorConstruction() {}
 
     G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
 
 private:
-    bool fCheckOverlaps = true;
+    bool fCheckOverlaps;
 };

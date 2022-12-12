@@ -55,7 +55,7 @@ private:
 G4VPhysicalVolume* DetectorConstruction::Construct() {
     auto* nist = G4NistManager::Instance();
 
-    double worldHalfSize = 0.5 * m;
+    double worldHalfSize = 0.1 * m;
     auto* worldMaterial = nist->FindOrBuildMaterial("G4_AIR");
 
     auto* solidWorld = new G4Box("World", worldHalfSize, worldHalfSize, worldHalfSize);
@@ -66,8 +66,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     double pixelDetectorSizeXY = 2. * cm;
     double pixelDetectorSizeZ = 100. * um;
     auto* pixelDetectorMaterial = nist->FindOrBuildMaterial("G4_Si");
-    int pixelsNumXY = 1000;
-    double pixelsSizeXY = 20. * um;
+    int pixelsNumXY = 800;
+    double pixelsSizeXY = pixelDetectorSizeXY / pixelsNumXY;
 
     // Single Pixel Cell (for simplicity only Si without inner structure)
     auto* solidSinglePixel = new G4Box("SinglePixel", 0.5 * pixelsSizeXY, 0.5 * pixelsSizeXY, 0.5 * pixelDetectorSizeZ);
@@ -79,9 +79,10 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     for (size_t n = 0; n < 5; ++n) {
         // Place Outer Pixel Detector Volume
         std::string pixelDetectorName = "PixelDetector" + std::to_string(n);
+        auto pixelDetectorTransfrom = G4Transform3D({}, {0.5 * pixelsSizeXY, 0.5 * pixelsSizeXY, n * cm - worldHalfSize});
         auto* solidPixelDetector = new G4Box(pixelDetectorName, 0.5 * pixelDetectorSizeXY, 0.5 * pixelDetectorSizeXY, 0.5 * pixelDetectorSizeZ);
         auto* logicPixelDetector = new G4LogicalVolume(solidPixelDetector, pixelDetectorMaterial, pixelDetectorName);
-        auto* physiPixelDetector = new G4PVPlacement(G4Transform3D({}, {0., 0., n * cm - 0.4 * m}), logicPixelDetector, pixelDetectorName, logicWorld, false, 0, fCheckOverlaps);
+        auto* physiPixelDetector = new G4PVPlacement(pixelDetectorTransfrom, logicPixelDetector, pixelDetectorName, logicWorld, false, 0, fCheckOverlaps);
         intentionallyUnused(physiPixelDetector);
 
         // Place Pixels
