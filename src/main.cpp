@@ -16,8 +16,15 @@
 
 #include "DetectorConstruction.hpp"
 #include "ActionInitialization.hpp"
+#include "WorkerMTRunManager.hpp"
 
 constexpr size_t runs = 100;
+
+enum class RunManagerType {
+    SingleThread,
+    MultiThread,
+    Worker,
+};
 
 template<class RunManager>
 std::chrono::milliseconds prepRunManager(RunManager*& runManager, bool checkOverlaps = false) {
@@ -70,12 +77,19 @@ void run_full_bench(size_t events_per_loop) {
     delete runManager;
 }
 
-void run_full_bench(bool mt, size_t splits) {
-    if (mt) {
-        run_full_bench<G4MTRunManager>(splits);
-    }
-    else {
+void run_full_bench(RunManagerType rmtype, size_t splits) {
+    switch (rmtype) {
+    case RunManagerType::SingleThread:
         run_full_bench<G4RunManager>(splits);
+        break;
+    case RunManagerType::MultiThread:
+        run_full_bench<G4MTRunManager>(splits);
+        break;
+    case RunManagerType::Worker:
+        run_full_bench<WorkerMTRunManager>(splits);
+        break;
+    default:
+        break;
     }
 }
 
@@ -104,7 +118,7 @@ int vis(int argc, char** argv) {
 }
 
 int errorMessage() {
-    std::cerr << "Usage: Benchmark: [st, mt] [splits]" << "\n"
+    std::cerr << "Usage: Benchmark: [st, mt, worker] [splits]" << "\n"
               << "       Visualization: [vis] [vis_backend]" << "\n"
               << " Note: splits needs to divide " << runs << " without reminder." << std::endl;
     return 1;
@@ -118,14 +132,18 @@ int main(int argc, char** argv) {
         return vis(argc, argv);
     }
 
-    bool mt;
-    if (strcmp(argv[1], "mt") == 0) {
-        mt = true;
+    RunManagerType rmtype;
+    if (strcmp(argv[1], "st") == 0) {
+        rmtype = RunManagerType::SingleThread;
+        std::cout << "Using single-threaded RunManager" << std::endl;
+    }
+    else if (strcmp(argv[1], "mt") == 0) {
+        rmtype = RunManagerType::MultiThread;;
         std::cout << "Using multi-threaded RunManager" << std::endl;
     }
-    else if (strcmp(argv[1], "st") == 0) {
-        mt = false;
-        std::cout << "Using normal RunManager" << std::endl;
+    else if (strcmp(argv[1], "worker") == 0) {
+        rmtype = RunManagerType::Worker;
+        std::cout << "Using RunManager with worker" << std::endl;
     }
     else {
         return errorMessage();
@@ -136,7 +154,7 @@ int main(int argc, char** argv) {
         return errorMessage();
     }
 
-    run_full_bench(mt, static_cast<size_t>(splits));
+    run_full_bench(rmtype, static_cast<size_t>(splits));
 
     return 0;
 }
